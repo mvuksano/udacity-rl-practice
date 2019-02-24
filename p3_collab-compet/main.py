@@ -10,14 +10,14 @@ from unityagents import UnityEnvironment
 from replay_buffer import ReplayBuffer
 
 
-RAND_SEED=9
+RAND_SEED=0
 STATE_SIZE=24
 ACTION_SIZE=2
 NUM_AGENTS=2
 AGENT_LR=0.001
 CRITIC_LR=0.001
 NOISE_DECAY=0.999
-LEARN_EVERY=2
+LEARN_EVERY=1
 GOAL_SCORE=0.5
 SAVE_INTERVAL=100
 
@@ -25,9 +25,9 @@ NUM_EPISODES=20000
 NUM_AGENTS=2
 MAX_TIMESTEPS=5000
 
-MEMORY_BATCH_SIZE=256
+MEMORY_BATCH_SIZE=512
 MEMORY_SIZE=int(1e6)
-EPS=0.8
+
 def seeding(seed=1):
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -79,8 +79,7 @@ def train(num_episodes, num_agents, max_timesteps, agents, env, brain_name, lear
             agents.step(states, actions, env_info.rewards, next_states, dones)
             
             if t % learn_every == 0:
-                for _ in range(10):
-                    agents.learn()
+                agents.learn()
 
                 
             states = next_states
@@ -88,7 +87,7 @@ def train(num_episodes, num_agents, max_timesteps, agents, env, brain_name, lear
             if np.any(dones):
                 logger.add_scalar('episode_length', t, e)
                 break
-        
+
         episode_reward = np.max(scores)
         scores_window.append(episode_reward)
         current_avg_score_over_window = np.mean(scores_window)

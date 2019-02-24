@@ -8,7 +8,7 @@ import torch.optim as optim
 import random
 
 GAMMA=0.99
-TAU = 0.002 
+TAU = 0.02 
 
 class Maddpg(object):
     def __init__(self, state_size, action_size, n_agents, actor_lr, critic_lr, noise_decay, logger, memory, device): 
@@ -94,9 +94,9 @@ class Maddpg(object):
             
         for i in range(self.n_agents):
             e = self.fixup_experiences_for_agent(i, experiences[i])
-            joint_predicted_actions_from_state = [a if i == j else a.detach() for j, a in enumerate(joint_predicted_actions_from_state)]
+            x = [a if i == j else a.detach() for j, a in enumerate(joint_predicted_actions_from_state)]
             c_loss, a_loss = self.agents[i].learn(e,
-                                   torch.cat(joint_predicted_actions_from_state, dim=1),
+                                   torch.cat(x, dim=1),
                                    torch.cat(joint_predicted_actions_from_next_state, dim=1))
             self.logger.add_scalar(f'critic_loss_{i}', c_loss, self.learn_step)
             self.logger.add_scalar(f'actor_loss_{i}', a_loss, self.learn_step)
@@ -114,14 +114,14 @@ class DdpgAgent(object):
     def __init__(self, name, state_size, action_size, joint_state_size, joint_action_size, actor_lr, critic_lr, noise_decay, device):
         self.name = name
         self.device = device
-        self.noise = OUNoise(action_size, sigma=0.15)
+        self.noise = OUNoise(action_size, sigma=0.1)
        
-        self.actor_local = Actor(state_size, action_size, fc1=128, fc2=128).to(device)
-        self.actor_target = Actor(state_size, action_size, fc1=128, fc2=128).to(device)
+        self.actor_local = Actor(state_size, action_size, fc1=64, fc2=64).to(device)
+        self.actor_target = Actor(state_size, action_size, fc1=64, fc2=64).to(device)
         self.actor_optimizer = optim.Adam(self.actor_local.parameters(), lr=actor_lr)
         
-        self.critic_local = Critic(joint_state_size, joint_action_size, fc1=128, fc2=128).to(device)
-        self.critic_target = Critic(joint_state_size, joint_action_size, fc1=128, fc2=128).to(device)
+        self.critic_local = Critic(joint_state_size, joint_action_size, fc1=64, fc2=64).to(device)
+        self.critic_target = Critic(joint_state_size, joint_action_size, fc1=64, fc2=64).to(device)
         self.critic_optimizer = optim.Adam(self.critic_local.parameters(), lr=critic_lr)
         
         self.noise_decay = noise_decay
@@ -166,7 +166,7 @@ class DdpgAgent(object):
         joint_states, joint_actions, rewards, joint_next_states, dones = experiences
         
         q_targets_next = self.critic_target(joint_next_states, joint_predicted_actions_from_next_state)
-        q_targets = rewards + (torch.Tensor(256, 1).fill_(GAMMA).to(self.device) * q_targets_next * (1 - dones))
+        q_targets = rewards + (torch.Tensor(dones.shape).fill_(GAMMA).to(self.device) * q_targets_next * (1 - dones))
         q_expected = self.critic_local(joint_states, joint_actions)
         critic_loss = torch.nn.SmoothL1Loss()(q_expected, q_targets.detach())
         # critic_loss = F.mse_loss(q_expected, q_targets.detach())
