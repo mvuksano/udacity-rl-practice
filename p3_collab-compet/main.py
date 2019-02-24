@@ -5,7 +5,6 @@ import os
 
 from agent import Maddpg
 from collections import deque
-from tensorboardX import SummaryWriter
 from unityagents import UnityEnvironment
 from replay_buffer import ReplayBuffer
 
@@ -34,7 +33,8 @@ def seeding(seed=1):
 
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("--chk", type=str, help="File name from which a model should be restored")
+    parser.add_argument("--episode", type=str, help="File name from which a model should be restored")
+    parser.add_argument("--play", action="store_true", help="run play mode.")
 
     args = parser.parse_args()
     
@@ -45,26 +45,26 @@ def main():
     model_dir= os.getcwd()+"/model_dir"
     os.makedirs(model_dir, exist_ok=True)
 
-    logger = SummaryWriter(log_dir=log_path)
 
     env, brain_name = start_unity_env("Tennis/Tennis.x86_64")
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print("Using device: {}".format(device))
     
     memory = ReplayBuffer(device=device, batch_size=MEMORY_BATCH_SIZE, memory_size=MEMORY_SIZE)
-    maddpg = Maddpg(STATE_SIZE, ACTION_SIZE, NUM_AGENTS, AGENT_LR, CRITIC_LR, NOISE_DECAY, logger, memory, device)
-    if args.chk:
-        print(f"Restoring from: {args.chk}")
-        restore_agents(maddpg, model_dir, args.chk)
+    maddpg = Maddpg(STATE_SIZE, ACTION_SIZE, NUM_AGENTS, AGENT_LR, CRITIC_LR, NOISE_DECAY, memory, device)
+    if args.play:
+        print(f"Restoring from: {args.episode}")
+        restore_agents(maddpg, model_dir, args.episode)
+        play(maddpg, env, brain_name)
 
-    train(NUM_EPISODES, NUM_AGENTS, MAX_TIMESTEPS, maddpg, env, brain_name, LEARN_EVERY, GOAL_SCORE, SAVE_INTERVAL, logger, model_dir)
+    train(NUM_EPISODES, NUM_AGENTS, MAX_TIMESTEPS, maddpg, env, brain_name, LEARN_EVERY, GOAL_SCORE, SAVE_INTERVAL, model_dir)
 
 def start_unity_env(file_name):
     env = UnityEnvironment(file_name)
     brain_name = env.brain_names[0]
     return env, brain_name
 
-def train(num_episodes, num_agents, max_timesteps, agents, env, brain_name, learn_every, goal_score, save_interval, logger, model_dir):
+def train(num_episodes, num_agents, max_timesteps, agents, env, brain_name, learn_every, goal_score, save_interval, model_dir):
     scores_window = deque(maxlen=100)
     for e in range(num_episodes):
         scores = np.zeros(num_agents)
@@ -92,9 +92,6 @@ def train(num_episodes, num_agents, max_timesteps, agents, env, brain_name, lear
         scores_window.append(episode_reward)
         current_avg_score_over_window = np.mean(scores_window)
         
-        logger.add_scalar(f'player{0}', scores[0], e)
-        logger.add_scalar(f'player{1}', scores[1], e)
-        logger.add_scalar('avg_score_over_window', current_avg_score_over_window, e)
         if e % save_interval == 0:
             persist_models(agents, model_dir, e)
             
@@ -103,6 +100,17 @@ def train(num_episodes, num_agents, max_timesteps, agents, env, brain_name, lear
             persist_models(agents, model_dir, e)
             break
 
+def play(agents, env, brain_name):
+    while True:
+        env_info = env.reset(train_mode=False)[brain_name]
+        states = env_info.vector_observations
+        while True:
+            actions = agents.act(states, 0)
+            env_info = env.step(actions)[brain_name]
+            dones = env_info.local_done
+            
+            if np.any(dones):
+                break
 
 def persist_models(agents, model_dir, current_episode):
     agents.save_agents(model_dir, current_episode)

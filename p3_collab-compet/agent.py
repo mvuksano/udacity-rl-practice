@@ -11,10 +11,9 @@ GAMMA=0.99
 TAU = 0.02 
 
 class Maddpg(object):
-    def __init__(self, state_size, action_size, n_agents, actor_lr, critic_lr, noise_decay, logger, memory, device): 
+    def __init__(self, state_size, action_size, n_agents, actor_lr, critic_lr, noise_decay, memory, device): 
         self.device = device
         self.n_agents = n_agents
-        self.logger = logger
         self.learn_step = 0
         self.mem = memory
         self.agents = []
@@ -98,8 +97,6 @@ class Maddpg(object):
             c_loss, a_loss = self.agents[i].learn(e,
                                    torch.cat(x, dim=1),
                                    torch.cat(joint_predicted_actions_from_next_state, dim=1))
-            self.logger.add_scalar(f'critic_loss_{i}', c_loss, self.learn_step)
-            self.logger.add_scalar(f'actor_loss_{i}', a_loss, self.learn_step)
         
     def fixup_experiences_for_agent(self, agent_idx, experiences):
         """
