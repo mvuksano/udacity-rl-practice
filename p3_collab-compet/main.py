@@ -10,13 +10,13 @@ from unityagents import UnityEnvironment
 from replay_buffer import ReplayBuffer
 
 
-RAND_SEED=0
+RAND_SEED=9
 STATE_SIZE=24
 ACTION_SIZE=2
 NUM_AGENTS=2
-AGENT_LR=0.005
-CRITIC_LR=0.05
-NOISE_DECAY=0.9999
+AGENT_LR=0.001
+CRITIC_LR=0.001
+NOISE_DECAY=0.999
 LEARN_EVERY=2
 GOAL_SCORE=0.5
 SAVE_INTERVAL=100
@@ -27,7 +27,7 @@ MAX_TIMESTEPS=5000
 
 MEMORY_BATCH_SIZE=256
 MEMORY_SIZE=int(1e6)
-
+EPS=0.8
 def seeding(seed=1):
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -47,7 +47,7 @@ def main():
 
     logger = SummaryWriter(log_dir=log_path)
 
-    env, brain_name = start_unity_env("Tennis.app")
+    env, brain_name = start_unity_env("Tennis/Tennis.x86_64")
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print("Using device: {}".format(device))
     
@@ -71,24 +71,24 @@ def train(num_episodes, num_agents, max_timesteps, agents, env, brain_name, lear
         env_info = env.reset(train_mode=True)[brain_name]
         states = env_info.vector_observations
         agents.reset_noise()
-        
         for t in range(max_timesteps):            
             actions = agents.act(states, 0)
-            env_info = env.step(actions)[brain_name]
+            env_info = env.step(actions.reshape(1, -1).squeeze().tolist())[brain_name]
             next_states = env_info.vector_observations
             dones = env_info.local_done
-            
             agents.step(states, actions, env_info.rewards, next_states, dones)
             
             if t % learn_every == 0:
-                agents.learn()
+                for _ in range(10):
+                    agents.learn()
+
                 
             states = next_states
             scores += env_info.rewards
             if np.any(dones):
+                logger.add_scalar('episode_length', t, e)
                 break
         
-        # print("Rewards: {}".format(rewards))
         episode_reward = np.max(scores)
         scores_window.append(episode_reward)
         current_avg_score_over_window = np.mean(scores_window)
@@ -100,6 +100,8 @@ def train(num_episodes, num_agents, max_timesteps, agents, env, brain_name, lear
             persist_models(agents, model_dir, e)
             
         if current_avg_score_over_window > goal_score:
+            print("Problem solved in {} episodes".format(e))
+            persist_models(agents, model_dir, e)
             break
 
 
