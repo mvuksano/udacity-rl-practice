@@ -46,7 +46,7 @@ def main():
     os.makedirs(model_dir, exist_ok=True)
 
 
-    env, brain_name = start_unity_env("Tennis/Tennis.x86_64")
+    env, brain_name = start_unity_env("Tennis.app")
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print("Using device: {}".format(device))
     
@@ -56,8 +56,8 @@ def main():
         print(f"Restoring from: {args.episode}")
         restore_agents(maddpg, model_dir, args.episode)
         play(maddpg, env, brain_name)
-
-    train(NUM_EPISODES, NUM_AGENTS, MAX_TIMESTEPS, maddpg, env, brain_name, LEARN_EVERY, GOAL_SCORE, SAVE_INTERVAL, model_dir)
+    else:
+        train(NUM_EPISODES, NUM_AGENTS, MAX_TIMESTEPS, maddpg, env, brain_name, LEARN_EVERY, GOAL_SCORE, SAVE_INTERVAL, model_dir)
 
 def start_unity_env(file_name):
     env = UnityEnvironment(file_name)
@@ -85,7 +85,6 @@ def train(num_episodes, num_agents, max_timesteps, agents, env, brain_name, lear
             states = next_states
             scores += env_info.rewards
             if np.any(dones):
-                logger.add_scalar('episode_length', t, e)
                 break
 
         episode_reward = np.max(scores)
@@ -103,14 +102,12 @@ def train(num_episodes, num_agents, max_timesteps, agents, env, brain_name, lear
 def play(agents, env, brain_name):
     while True:
         env_info = env.reset(train_mode=False)[brain_name]
-        states = env_info.vector_observations
-        while True:
-            actions = agents.act(states, 0)
-            env_info = env.step(actions)[brain_name]
-            dones = env_info.local_done
-            
-            if np.any(dones):
-                break
+        state = env_info.vector_observations
+        done = False
+        while not done:
+            env_info = env.step(agents.act(state, 0))[brain_name]
+            state = env_info.vector_observations
+            done = any(env_info.local_done)
 
 def persist_models(agents, model_dir, current_episode):
     agents.save_agents(model_dir, current_episode)

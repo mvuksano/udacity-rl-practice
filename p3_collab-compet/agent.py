@@ -23,7 +23,7 @@ class Maddpg(object):
     def reset_noise(self):
         for agent in self.agents:
             agent.reset()
-            
+
     def save_agents(self, model_dir, episode):
         for i, agent in enumerate(self.agents):
             torch.save(agent.actor_local.state_dict(),  f"{model_dir}/checkpoint_actor_agent_{i}_{episode}.pth")
@@ -31,8 +31,8 @@ class Maddpg(object):
             
     def load_agents(self, model_dir, episode):
         for i, agent in enumerate(self.agents):
-            agent.actor_local.state_dict(torch.load(f'{model_dir}/checkpoint_actor_agent_{i}_{episode}.pth'))
-            agent.critic_local.state_dict(torch.load(f'{model_dir}/checkpoint_critic_agent_{i}_{episode}.pth'))
+            agent.actor_local.load_state_dict(torch.load(f'{model_dir}/checkpoint_actor_agent_{i}_{episode}.pth', map_location={'cuda:0': 'cpu'}))
+            agent.critic_local.load_state_dict(torch.load(f'{model_dir}/checkpoint_critic_agent_{i}_{episode}.pth', map_location={'cuda:0': 'cpu'}))
         
         
     def act(self, states, eps):
