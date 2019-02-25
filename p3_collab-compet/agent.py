@@ -29,10 +29,9 @@ class Maddpg(object):
             torch.save(agent.actor_local.state_dict(),  f"{model_dir}/checkpoint_actor_agent_{i}_{episode}.pth")
             torch.save(agent.critic_local.state_dict(), f"{model_dir}/checkpoint_critic_agent_{i}_{episode}.pth")
             
-    def load_agents(self, model_dir, episode):
+    def load_agents(self, agent_models):
         for i, agent in enumerate(self.agents):
-            agent.actor_local.load_state_dict(torch.load(f'{model_dir}/checkpoint_actor_agent_{i}_{episode}.pth', map_location={'cuda:0': 'cpu'}))
-            agent.critic_local.load_state_dict(torch.load(f'{model_dir}/checkpoint_critic_agent_{i}_{episode}.pth', map_location={'cuda:0': 'cpu'}))
+            agent.actor_local.load_state_dict(torch.load(f'{agent_models[i]}', map_location={'cuda:0': 'cpu'}))
         
         
     def act(self, states, eps):

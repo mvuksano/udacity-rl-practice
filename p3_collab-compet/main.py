@@ -27,24 +27,23 @@ MAX_TIMESTEPS=5000
 MEMORY_BATCH_SIZE=512
 MEMORY_SIZE=int(1e6)
 
+PRINT_EVERY=100
+
 def seeding(seed=1):
     np.random.seed(seed)
     torch.manual_seed(seed)
 
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("--episode", type=str, help="File name from which a model should be restored")
-    parser.add_argument("--play", action="store_true", help="run play mode.")
-
+    parser.add_argument("--player-1", type=str, help='File name to load the model for player 1 from.')
+    parser.add_argument("--player-2", type=str, help='File name to load the model for player 2 from.')
+    parser.add_argument("--play", action="store_true", help="Run play mode.")
     args = parser.parse_args()
-    
 
     seeding(RAND_SEED)
 
-    log_path = os.getcwd()+"/log"
     model_dir= os.getcwd()+"/model_dir"
     os.makedirs(model_dir, exist_ok=True)
-
 
     env, brain_name = start_unity_env("Tennis.app")
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -53,8 +52,7 @@ def main():
     memory = ReplayBuffer(device=device, batch_size=MEMORY_BATCH_SIZE, memory_size=MEMORY_SIZE)
     maddpg = Maddpg(STATE_SIZE, ACTION_SIZE, NUM_AGENTS, AGENT_LR, CRITIC_LR, NOISE_DECAY, memory, device)
     if args.play:
-        print(f"Restoring from: {args.episode}")
-        restore_agents(maddpg, model_dir, args.episode)
+        restore_agents(maddpg, [args.player_1, args.player_2])
         play(maddpg, env, brain_name)
     else:
         train(NUM_EPISODES, NUM_AGENTS, MAX_TIMESTEPS, maddpg, env, brain_name, LEARN_EVERY, GOAL_SCORE, SAVE_INTERVAL, model_dir)
@@ -80,7 +78,6 @@ def train(num_episodes, num_agents, max_timesteps, agents, env, brain_name, lear
             
             if t % learn_every == 0:
                 agents.learn()
-
                 
             states = next_states
             scores += env_info.rewards
@@ -90,7 +87,10 @@ def train(num_episodes, num_agents, max_timesteps, agents, env, brain_name, lear
         episode_reward = np.max(scores)
         scores_window.append(episode_reward)
         current_avg_score_over_window = np.mean(scores_window)
-        
+
+        if e % PRINT_EVERY == 0:
+            print(f'Current average score over specified window: {current_avg_score_over_window}')
+
         if e % save_interval == 0:
             persist_models(agents, model_dir, e)
             
@@ -112,8 +112,8 @@ def play(agents, env, brain_name):
 def persist_models(agents, model_dir, current_episode):
     agents.save_agents(model_dir, current_episode)
 
-def restore_agents(agents, model_dir, episode):
-    agents.load_agents(model_dir, episode)
+def restore_agents(agents, agent_models):
+    agents.load_agents(agent_models)
 
 if __name__=='__main__':
     main()
