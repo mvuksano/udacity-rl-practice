@@ -15,7 +15,6 @@ ACTION_SIZE=2
 NUM_AGENTS=2
 AGENT_LR=0.001
 CRITIC_LR=0.001
-NOISE_DECAY=0.999
 LEARN_EVERY=1
 GOAL_SCORE=0.5
 SAVE_INTERVAL=100
@@ -97,7 +96,6 @@ def train(num_episodes, num_agents, max_timesteps, agents, env, brain_name, lear
         if current_avg_score_over_window > goal_score:
             print("Problem solved in {} episodes".format(e))
             persist_models(agents, model_dir, e)
-            break
 
 def play(agents, env, brain_name):
     while True:
