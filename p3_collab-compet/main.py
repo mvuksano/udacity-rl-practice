@@ -49,7 +49,7 @@ def main():
     print("Using device: {}".format(device))
     
     memory = ReplayBuffer(device=device, batch_size=MEMORY_BATCH_SIZE, memory_size=MEMORY_SIZE)
-    maddpg = Maddpg(STATE_SIZE, ACTION_SIZE, NUM_AGENTS, AGENT_LR, CRITIC_LR, NOISE_DECAY, memory, device)
+    maddpg = Maddpg(STATE_SIZE, ACTION_SIZE, NUM_AGENTS, AGENT_LR, CRITIC_LR, memory, device)
     if args.play:
         restore_agents(maddpg, [args.player_1, args.player_2])
         play(maddpg, env, brain_name)

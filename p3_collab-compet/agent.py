@@ -11,14 +11,14 @@ GAMMA=0.99
 TAU = 0.02 
 
 class Maddpg(object):
-    def __init__(self, state_size, action_size, n_agents, actor_lr, critic_lr, noise_decay, memory, device): 
+    def __init__(self, state_size, action_size, n_agents, actor_lr, critic_lr, memory, device): 
         self.device = device
         self.n_agents = n_agents
         self.learn_step = 0
         self.mem = memory
         self.agents = []
         for i in range(n_agents):
-            self.agents.append(DdpgAgent(i, state_size, action_size, state_size*n_agents, action_size*n_agents, actor_lr, critic_lr, noise_decay, device ))
+            self.agents.append(DdpgAgent(i, state_size, action_size, state_size*n_agents, action_size*n_agents, actor_lr, critic_lr, device ))
             
     def reset_noise(self):
         for agent in self.agents:
@@ -107,7 +107,7 @@ class Maddpg(object):
         return (states, actions, rewards.index_select(1, agent_idx), next_states, dones.index_select(1, agent_idx))
 
 class DdpgAgent(object):
-    def __init__(self, name, state_size, action_size, joint_state_size, joint_action_size, actor_lr, critic_lr, noise_decay, device):
+    def __init__(self, name, state_size, action_size, joint_state_size, joint_action_size, actor_lr, critic_lr, device):
         self.name = name
         self.device = device
         self.noise = OUNoise(action_size, sigma=0.1)
@@ -119,8 +119,6 @@ class DdpgAgent(object):
         self.critic_local = Critic(joint_state_size, joint_action_size, fc1=64, fc2=64).to(device)
         self.critic_target = Critic(joint_state_size, joint_action_size, fc1=64, fc2=64).to(device)
         self.critic_optimizer = optim.Adam(self.critic_local.parameters(), lr=critic_lr)
-        
-        self.noise_decay = noise_decay
         
         self.hard_copy_weights(self.actor_target, self.actor_local)
         self.hard_copy_weights(self.critic_target, self.critic_local)
@@ -151,7 +149,6 @@ class DdpgAgent(object):
             action = self.actor_local(states.unsqueeze(0)).squeeze(0).cpu().data.numpy()
         self.actor_local.train()
         if add_noise:
-                self.noise_decay *= 0.999
                 action += (self.noise.sample() )
         return np.clip(action, -1, 1)
     
