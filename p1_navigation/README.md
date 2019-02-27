@@ -1,13 +1,13 @@
-# Navigation¶
+# Navigation
 
 #### Environment
 
 The simulation contains a single agent that navigates a large environment. At each time step, it has four actions at its disposal:
 
-1. 0 - walk forward
-1. 1 - walk backward
-1. 2 - turn left
-1. 3 - turn right
+1. `0` - walk forward
+1. `1` - walk backward
+1. `2` - turn left
+1. `3` - turn right
 
 The state space has 37 dimensions and contains the agent's velocity, along with ray-based perception of objects around agent's forward direction. A reward of +1 is provided for collecting a yellow banana, and a reward of -1 is provided for collecting a blue banana. The goal of the agent is to collect as many yellow bananas as possible while avoiding blue bananas.
 
