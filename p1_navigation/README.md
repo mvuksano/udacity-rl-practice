@@ -37,14 +37,3 @@ In order to train an agent or use a pretrained model as an agent start Jupyter a
 * Run command `jupyter notebook` from root of this project.
 * Open `Navigation` notebook.
 
-#### Rewards
-
-In the following graph we can see how the agent progressed with learning. We can see that the reward that agent gets on average keeps increasing over time. If we let training process go for longer it is highly likely that agent would achieve better performance.
-
-![Plot of rewards](images/rewards.png)
-
-In the run associated with the graph above the agent achieved an average score of +13 after 458 episodes.
-
-#### Ideas for Future Work
-
-It would be interesting to try teaching the agent how to navigate the environment just from pixels. Another parameter that would be interesting to test is how does size of memory effect agents ability to learn. Is there a point at which memory is too large and inhibits agent's ability to learn? Another experiment worth trying is using some policy based method to learn instead of value based one. For example, using A3C or DDPG sounds interesting.
