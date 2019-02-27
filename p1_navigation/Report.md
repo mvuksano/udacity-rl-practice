@@ -1,3 +1,5 @@
+# Report
+
 Goal of this exercise is to teach an agent to collect bannanas. To do that we use a technique called "reinforcement learning" or RL for short.
 
 # Learning algorithm
@@ -24,9 +26,4 @@ The algorithm tries to maximise expected cumulative reward.
 
 # Model architecture
 
-DQN used for this exercise is defined in `model.py` file.
-
-
-# Code walkthrough
-
-The 
+Neural network used for this agent is a three layer network where all layers are fully connected with ReLU activation function used after first and second layer.
